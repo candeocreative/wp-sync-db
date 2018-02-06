@@ -225,10 +225,11 @@ class WPSDB extends WPSDB_Base {
 		if ( ! is_null( $this->create_alter_table_query ) ) {
 			return $this->create_alter_table_query;
 		}
-		$alter_table_name = $this->get_alter_table_name();
-		$this->create_alter_table_query = sprintf( "DROP TABLE IF EXISTS `%s`;\n", $alter_table_name );
-		$this->create_alter_table_query .= sprintf( "CREATE TABLE `%s` ( `query` longtext NOT NULL );\n", $alter_table_name );
-		$this->create_alter_table_query = apply_filters( 'wpsdb_create_alter_table_query', $this->create_alter_table_query );
+    $alter_table_name = $this->get_alter_table_name();
+    $this->create_alter_table_query = '';
+		$this->create_alter_table_query .= sprintf( "DROP TABLE IF EXISTS %s;\n", $this->backquote($alter_table_name) );
+    $this->create_alter_table_query .= sprintf( "CREATE TABLE %s ( `query` longtext NOT NULL );\n", $this->backquote($alter_table_name) );
+    $this->create_alter_table_query = apply_filters( 'wpsdb_create_alter_table_query', $this->create_alter_table_query );
 		return $this->create_alter_table_query;
 	}
 
@@ -553,9 +554,14 @@ class WPSDB extends WPSDB_Base {
 			$preserved_options[] = 'active_plugins';
 		}
 
-		$preserved_options = apply_filters( 'wpsdb_preserved_options', $preserved_options );
+    $preserved_options = apply_filters( 'wpsdb_preserved_options', $preserved_options );
 
 		foreach ( $temp_tables as $table ) {
+
+      if(empty(substr($table, strlen($temp_prefix)))) {
+        continue;
+      }
+
 			$sql .= 'DROP TABLE IF EXISTS ' . $this->backquote( substr( $table, strlen( $temp_prefix ) ) ) . ';';
 			$sql .= "\n";
 			$sql .= 'RENAME TABLE ' . $this->backquote( $table )  . ' TO ' . $this->backquote( substr( $table, strlen( $temp_prefix ) ) ) . ';';
@@ -656,7 +662,7 @@ class WPSDB extends WPSDB_Base {
 		$this->set_time_limit();
 
 		$queries = array_filter( explode( ";\n", $chunk ) );
-		array_unshift( $queries, "SET sql_mode='NO_AUTO_VALUE_ON_ZERO';" );
+    array_unshift( $queries, "SET sql_mode='NO_AUTO_VALUE_ON_ZERO'" );
 
 		ob_start();
 		$wpdb->show_errors();
@@ -2455,7 +2461,7 @@ class WPSDB extends WPSDB_Base {
 			case 'pull' :
 				if( $_POST['stage'] == 'backup' ) {
 					$this->delete_export_file( $_POST['dump_filename'], true );
-}
+      }
 				else {
 					$this->delete_temporary_tables( $_POST['temp_prefix'] );
 				}
